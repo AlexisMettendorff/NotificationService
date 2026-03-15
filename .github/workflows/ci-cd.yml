@@ -1,0 +1,38 @@
+name: CI/CD NotificationService
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    services:
+      rabbitmq:
+        image: rabbitmq:3.13-management
+        ports:
+          - 5672:5672
+          - 15672:15672
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - run: dotnet restore NotificationService/NotificationService.csproj
+      - run: dotnet build NotificationService/NotificationService.csproj -c Release --no-restore
+      - run: dotnet test NotificationService/NotificationService.Tests/NotificationService.Tests.csproj --no-build
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: docker build -t ghcr.io/${{ github.repository_owner }}/notificationservice:latest NotificationService/
+
+      - run: docker push ghcr.io/${{ github.repository_owner }}/notificationservice:latest
