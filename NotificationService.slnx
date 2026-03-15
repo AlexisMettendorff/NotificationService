@@ -1,11 +1,9 @@
 <Solution>
-  <Folder Name="/tests/">
-    <Project Path="NotificationService.Tests/NotificationService.Tests.csproj" />
-  </Folder>
   <Folder Name="/Éléments de solution/">
     <File Path=".github/workflows/ci-cd.yml" />
     <File Path="docker-compose.yml" />
   </Folder>
+  <Project Path="NotificationService.Tests/NotificationService.Tests.csproj" />
   <Project Path="NotificationService/NotificationService.csproj" />
   <Project Path="Producer/Producer.csproj" />
 </Solution>
