@@ -1,4 +1,4 @@
-using RabbitMQ.Client;
+﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 
@@ -15,7 +15,7 @@ public class Worker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var factory = new ConnectionFactory { HostName = "localhost" };
+        var factory = new ConnectionFactory { HostName = "rabbitmq_dev" };
 
         var connection = await factory.CreateConnectionAsync();
         var channel = await connection.CreateChannelAsync();
@@ -35,7 +35,7 @@ public class Worker : BackgroundService
             var body = ea.Body.ToArray();
             var message = Encoding.UTF8.GetString(body);
 
-            _logger.LogInformation("Notification re�ue : {message}", message);
+            _logger.LogInformation("Notification reçue : {message}", message);
 
             await Task.CompletedTask;
         };
