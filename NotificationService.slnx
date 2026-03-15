@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/tests/">
+    <Project Path="NotificationService.Tests/NotificationService.Tests.csproj" />
+  </Folder>
   <Project Path="NotificationService/NotificationService.csproj" />
   <Project Path="Producer/Producer.csproj" />
 </Solution>
