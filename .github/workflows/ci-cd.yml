@@ -12,12 +12,36 @@ on:
 
 jobs:
   build:
+  build:
     runs-on: ubuntu-latest
+
 
     services:
       rabbitmq:
         image: rabbitmq:3.13-management
         ports:
+          - 5673:5672
+          - 15673:15672
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore NotificationService/NotificationService.csproj
+
+      - name: Build
+        run: dotnet build NotificationService/NotificationService.csproj -c Release --no-restore
+
+  sonar:
+    runs-on: ubuntu-latest
+    needs: build
+
           - 5673:5672
           - 15673:15672
 
@@ -46,6 +70,8 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
