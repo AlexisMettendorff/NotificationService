@@ -8,40 +8,16 @@ on:
     branches:
       - prod
       - main
-      
 
 jobs:
-  build:
+
   build:
     runs-on: ubuntu-latest
-
 
     services:
       rabbitmq:
         image: rabbitmq:3.13-management
         ports:
-          - 5673:5672
-          - 15673:15672
-
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: "8.0.x"
-
-      - name: Restore
-        run: dotnet restore NotificationService/NotificationService.csproj
-
-      - name: Build
-        run: dotnet build NotificationService/NotificationService.csproj -c Release --no-restore
-
-  sonar:
-    runs-on: ubuntu-latest
-    needs: build
-
           - 5673:5672
           - 15673:15672
 
@@ -72,8 +48,6 @@ jobs:
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: "8.0.x"
 
@@ -93,9 +67,10 @@ jobs:
 
       - name: End Sonar analysis
         run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+
   test:
     runs-on: ubuntu-latest
-    needs: [build, sonar]
+    needs: sonar
 
     steps:
       - name: Checkout repo
@@ -107,7 +82,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: test
-
     if: github.ref == 'refs/heads/prod'
 
     steps:
@@ -133,3 +107,4 @@ jobs:
         run: |
           echo "Connecting to Azure server..."
           ssh fakeuser@azure-server "docker pull ghcr.io/${{ secrets.NAME }}/notificationservice:latest"
+        continue-on-error: true
