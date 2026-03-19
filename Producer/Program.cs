@@ -22,4 +22,4 @@ await channel.BasicPublishAsync(
     body: body
 );
 
-Console.WriteLine($"Message envoyé : {message}");
+Console.WriteLine($"Un nouveau message a été envoyé : {message}");
