@@ -3,36 +3,107 @@ name: CI/CD NotificationService
 on:
   push:
     branches:
-      - main
+      - dev
   pull_request:
+    branches:
+      - prod
+      - main
+      
 
 jobs:
-  build-and-push:
+  build:
     runs-on: ubuntu-latest
+
     services:
       rabbitmq:
         image: rabbitmq:3.13-management
         ports:
-          - 5672:5672
-          - 15672:15672
+          - 5673:5672
+          - 15673:15672
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-dotnet@v3
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: "8.0.x"
 
-      - run: dotnet restore NotificationService/NotificationService.csproj
-      - run: dotnet build NotificationService/NotificationService.csproj -c Release --no-restore
-      - run: dotnet test NotificationService.sln
+      - name: Restore
+        run: dotnet restore NotificationService/NotificationService.csproj
 
-      - name: Log in to GitHub Container Registry
+      - name: Build
+        run: dotnet build NotificationService/NotificationService.csproj -c Release --no-restore
+
+  sonar:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install SonarScanner
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      - name: Begin Sonar analysis
+        run: |
+          dotnet sonarscanner begin \
+            /k:"${{ secrets.SONAR_PROJECT_KEY }}" \
+            /o:"${{ secrets.SONAR_ORGANIZATION }}" \
+            /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
+            /d:sonar.host.url="https://sonarcloud.io"
+
+      - name: Build (for Sonar)
+        run: dotnet build NotificationService/NotificationService.csproj
+
+      - name: End Sonar analysis
+        run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+  test:
+    runs-on: ubuntu-latest
+    needs: [build, sonar]
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Run tests
+        run: dotnet test NotificationService.sln
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+
+    if: github.ref == 'refs/heads/prod'
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - run: docker build -t ghcr.io/alexismettendorff/notificationservice:latest NotificationService/
+      - name: Build Docker image
+        run: |
+          docker build -t ghcr.io/${{ secrets.NAME }}/notificationservice:latest NotificationService/
 
-      - run: docker push ghcr.io/alexismettendorff/notificationservice:latest
+      - name: Push Docker image
+        run: |
+          docker push ghcr.io/${{ secrets.NAME }}/notificationservice:latest
+
+      - name: Simulated Azure deployment
+        run: |
+          echo "Connecting to Azure server..."
+          ssh fakeuser@azure-server "docker pull ghcr.io/${{ secrets.NAME }}/notificationservice:latest"
